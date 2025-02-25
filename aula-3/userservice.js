@@ -38,9 +38,9 @@ class userService {
         }
     }
 
-    addUser(nome, email) {
+    addUser(nome, email, senha, endereço, telefone, cpf) {
         try {
-            const user = new User(this.nextId++, nome, email)
+            const user = new User(this.nextId++, nome, email, senha, endereço, telefone, cpf)
             this.users.push(user)
             this.saveUsers();
             return user

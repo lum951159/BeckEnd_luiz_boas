@@ -1,27 +1,26 @@
 const express = require('express');
 const userService = require('./userService');
 
-const app = express()
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
 app.post('/users', (req, res) => {
-    const { nome, email } = req.body
-    if (!nome || !email) {
-        return res.status(400).json
-            ({ error: "Nome e email são obrigatorios" })
+    const { nome, email, senha, endereço, telefone, cpf } = req.body;
+
+    if (!nome || !email || !senha || !endereço || !telefone || !cpf) {
+        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
     }
 
-    const user = userService.addUser(nome, email)
-    res.status(200).json({ user })
-})
+    const user = userService.addUser(nome, email, senha, endereço, telefone, cpf);
+    res.status(200).json({ user });
+});
 
 app.get('/users', (req, res) => {
-    res.json(userService.getUsers())
+    res.json(userService.getUsers());
+});
 
-})
-
-port = 3000
+const port = 3000; // Corrigido
 
 app.listen(port, () => {
-    console.log("Rodando na porta 3000")
-})
+    console.log(`Rodando na porta ${port}`);
+});
