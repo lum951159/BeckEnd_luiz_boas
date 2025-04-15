@@ -1,10 +1,12 @@
 const User = require('./user');
 const path = require('path');
-const fs = require('fs')
+const fs = require('fs');
+const bcrypt = require('bcryptjs');
+const mysql = require('./mysql'); // Importando o módulo mysql
 
 class userService {
     constructor() {
-        this.filePath = path.join(__dirname, 'user.json')
+        this.filePath = path.join(__dirname, 'user.json');
         this.users = this.loadUsers();
         this.nextId = this.getNextId();
     }
@@ -21,38 +23,46 @@ class userService {
         return []; //retorna um array vazio
     }
 
-    getNextId() {//função para buscar o proximo id
+    getNextId() { //função para buscar o proximo id
         try {
             if (this.users.length === 0) return 1;
-            return Math.max(...this.users.map(user => user.id)) + 1;//retorna o maior id +1
+            return Math.max(...this.users.map(user => user.id)) + 1; //retorna o maior id +1
         } catch (erro) {
             console.log('Erro ao buscar proximo id', erro);
         }
     }
+
     saveUsers() {
         try {
-            fs.writeFileSync(this.filePath, JSON.stringify(this.users))
+            fs.writeFileSync(this.filePath, JSON.stringify(this.users, null, 2));
         } catch (erro) {
-            console.log('erro ao buscar proximo user', erro);
+            console.log('Erro ao salvar usuários', erro);
         }
     }
 
-    addUser(nome, email, senha, endereco, telefone, cfp) { //função para adicionar usuario
+    async addUser(nome, email, senha, endereco, telefone, cpf) { //função para adicionar usuario
         try {
-            const user = new User(this.nextId++, nome, email, senha, endereco, telefone, cfp); //cria um novo usuario
-            this.users.push(user);//adiciona o usuario no array
-            this.saveUsers();//salva o usuario
-            return user;
+            const senhaCriptografada = await bcrypt.hash(senha, 10);
+
+            const resultados = await mysql.execute(
+                `INSERT INTO usuario (nome, email, senha, endereço, telefone, cpf)       
+                     Values (?, ?, ?, ?, ?, ?)`,
+                [nome, email, senhaCriptografada, endereco, telefone, cpf]
+
+            );
+            return resultados;
+
         } catch (erro) {
-            console.log('Erro ao adicionar usuario', erro);
+            console.log('Erro ao adicionar usuário', erro);
+            throw erro;
         }
     }
 
     getUsers() {
         try {
-            return this.users
+            return this.users;
         } catch (erro) {
-            console.log('erro na função getUser', erro)
+            console.log('Erro na função getUsers', erro);
         }
     }
 
@@ -60,28 +70,30 @@ class userService {
         try {
             this.users = this.users.filter(user => user.id !== id);
             this.saveUsers();
-
-        } catch {
-            console.log('erro na função getUser', erro)
-        }
-    }
-
-    putUser(id, nome, email, senha, endereço, telefone, cpf) {
-        try {
-            const index = this.users.findIndex(user => user.id === id);
-            if (index === -1) {
-                throw new Error('Usuário não encontrado');
-            }
-            this.users[index] = new User(id, nome, email, senha, endereço, telefone, cpf);
-            this.saveUsers();
-            return this.users[index];
         } catch (erro) {
-            console.log('erro na função getUser', erro)
+            console.log('Erro na função deleteUser', erro);
         }
     }
 
+    async putUser(id, nome, email, senha, endereco, telefone, cpf) {
+        try {
+            const senhaCriptografada = await bcrypt.hash(senha, 10);    
+            const resultados = await mysql.execute(
+                `UPDATE usuario
+                    SET nome      = ?, 
+                        email     = ?,
+                        senha     = ?,
+                        cpf       = ?,  
+                        telefone  = ?,
+                        endereço  = ?
+                  WHERE IDusuario = ?;`,
+                [nome, email, senhaCriptografada, cpf, telefone, endereco, id]);
+            return resultados;
+        } catch (erro) {
+            console.log('Erro na função putUser', erro);
 
+        }
+    }
 }
 
-
-module.exports = new userService
+module.exports = new userService;
