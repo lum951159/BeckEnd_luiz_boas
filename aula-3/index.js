@@ -26,16 +26,19 @@ app.post("/users", async (req, res) => {
 
 //rota para excluir usuario pelo id
 
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   //converte o ID para numero
   try {
-    const resultado = userService.deleteUser(id);
+    const resultado = await userService.deleteUser(id);
     //tenta excluir o usuario
+    if(!resultado) {
+      return res.status(406).json({ "Mensagem": "Usuário não existe" });
+    }
     res.status(200).json(resultado);
     //retorna a mensagem de sucesso
   } catch (erro) {
-    res.status(400).json({ error: erro.massage });
+    res.status(404).json({ error: erro.massage });
     //retorna mensagem de erro
   }
 });
