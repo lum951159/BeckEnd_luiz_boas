@@ -5,40 +5,6 @@ const bcrypt = require('bcryptjs');
 const mysql = require('./mysql'); // Importando o módulo mysql
 
 class userService {
-    constructor() {
-        this.filePath = path.join(__dirname, 'user.json');
-        this.users = this.loadUsers();
-        this.nextId = this.getNextId();
-    }
-
-    loadUsers() { //carregar os usuarios do JSON (Banco)
-        try { //tenta executar o bloco de codigo
-            if (fs.existsSync(this.filePath)) { //verifica se o arquivo existe
-                const data = fs.readFileSync(this.filePath); //le o arquivo
-                return JSON.parse(data); //transforma o json em objeto
-            }
-        } catch (erro) { //caso ocorra um erro
-            console.log('Erro ao carregar arquivo', erro);
-        }
-        return []; //retorna um array vazio
-    }
-
-    getNextId() { //função para buscar o proximo id
-        try {
-            if (this.users.length === 0) return 1;
-            return Math.max(...this.users.map(user => user.id)) + 1; //retorna o maior id +1
-        } catch (erro) {
-            console.log('Erro ao buscar proximo id', erro);
-        }
-    }
-
-    saveUsers() {
-        try {
-            fs.writeFileSync(this.filePath, JSON.stringify(this.users, null, 2));
-        } catch (erro) {
-            console.log('Erro ao salvar usuários', erro);
-        }
-    }
 
     async addUser(nome, email, senha, endereco, telefone, cpf) { //função para adicionar usuario
         try {
@@ -58,18 +24,29 @@ class userService {
         }
     }
 
-    getUsers() {
+    async getUsers() {
         try {
-            return this.users;
+            const resultados = await mysql.execute(
+                `SELECT  IDusuario FROM usuario WHERE IDusuario = ?`,
+                [IDusuario]
+            );
+            return resultado;
         } catch (erro) {
-            console.log('Erro na função getUsers', erro);
+            console.log('Erro ao buscar usuarios', erro);
         }
     }
 
-    deleteUser(id) {
+    async deleteUser(id) {
         try {
-            this.users = this.users.filter(user => user.id !== id);
-            this.saveUsers();
+            if (userService.length == 0) {
+                console.log('Usuário não encontrado');
+                return;
+            }
+            const deletar = await mysql.execute(
+                `DELETE FROM usuario WHERE IDusuario = ?`,
+                [id]
+            );
+            return resultado;
         } catch (erro) {
             console.log('Erro na função deleteUser', erro);
         }
@@ -77,7 +54,7 @@ class userService {
 
     async putUser(id, nome, email, senha, endereco, telefone, cpf) {
         try {
-            const senhaCriptografada = await bcrypt.hash(senha, 10);    
+            const senhaCriptografada = await bcrypt.hash(senha, 10);
             const resultados = await mysql.execute(
                 `UPDATE usuario
                     SET nome      = ?, 
